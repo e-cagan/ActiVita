@@ -1,0 +1,275 @@
+{% extends "app/layout.html" %}
+
+{% load static %}
+
+{% block title %}
+    Home
+{% endblock %}
+
+{% block styles %}
+    <style>
+        .card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            max-height: 400px; /* Kartın yüksekliğini sınırlandırmak için */
+            overflow-y: auto; /* Kartın içeriği fazla olduğunda kaydırma sağlar */
+            margin-bottom: 20px;
+            box-shadow: 0 6px 10px rgba(0,0,0,.08), 0 0 6px rgba(0,0,0,.05);
+            border-radius: 4px;
+            background: #fff;
+            transition: .3s transform cubic-bezier(.155,1.105,.295,1.12),.3s box-shadow,.3s -webkit-transform cubic-bezier(.155,1.105,.295,1.12);
+            cursor: pointer;
+        }
+
+        .card:hover{
+            transform: scale(1.05);
+            box-shadow: 0 10px 20px rgba(0,0,0,.12), 0 4px 8px rgba(0,0,0,.06);
+        }
+
+        .card-body {
+            flex-grow: 1; /* Kartın gövdesinin esneyerek tüm boşluğu kaplamasını sağlar */
+        }
+
+        .card-body p {
+            max-height: 300px; /* Açıklamanın maksimum yüksekliği */
+            overflow-y: auto;  /* Taşan içeriği kaydır */
+        }
+
+        .progress {
+            margin-top: 10px; /* Üstten biraz boşluk ekler */
+        }
+
+        .progress-bar {
+            width: 0; /* Progress bar'ın başlangıç genişliği */
+            text-align: center; /* İçerik ortalanır */
+            transition: width 0.4s ease; /* Genişlik değişiklikleri için geçiş efekti */
+        }
+
+        .card-footer {
+            display: flex; /* Inline yerine flex kullanarak düğmeleri yan yana yerleştirme */
+            justify-content: center; /* Ortalar */
+            gap: 10px; /* Düğmeler arasına boşluk ekler */
+        }
+
+        .card-img {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            margin-right: 10px;
+        }
+
+        .contributors, .participators {
+            overflow-y: hidden;
+        }
+
+        .list-group-item .d-flex {
+            flex-grow: 1; /* Metin kısmının genişlemesini sağlar */
+        }
+
+        .list-group-item #congratulate-form, .congratulate-btn {
+            margin-left: auto; /* Butonu sağa yaslar */
+        }
+
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            background-color: #000000;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="container">
+        <h1 class="text-center">Events</h1>
+        <div class="row">
+            {% for event in event_list %}
+                <div class="col-sm-6 mb-4 d-flex" id="event" data-event-id="{{ event.event.id }}"> <!-- 2 sütun yapısı ve mobilde tam genişlik için -->
+                    <div class="card w-100 d-flex flex-column"> <!-- Kartın genişliği tam olsun -->
+                        <div class="card-header text-center">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong>{{ event.event.title }}</strong>
+                                <div class="buttons">
+                                    {% if event.event.organizer == request.user %}
+                                        <!-- Edit button -->
+                                        <button type="button" class="btn btn-outline-success edit-event-btn" 
+                                            data-bs-toggle="modal" data-bs-target="#editEventModal" 
+                                            data-event-id="{{ event.event.id }}" 
+                                            data-event-title="{{ event.event.title }}" 
+                                            data-event-description="{{ event.event.description }}" 
+                                            data-event-date="{{ event.event.date|date:'Y-m-d\TH:i' }}"
+                                            data-event-location="{{ event.event.location }}"
+                                            data-edit-url="{% url 'edit_event' event.event.id %}">
+                                            <i class="fa-solid fa-pen-to-square"></i>
+                                        </button>
+
+                                        <!-- Delete button -->
+                                        <button type="button" class="btn btn-outline-danger delete-event-btn" 
+                                            data-bs-toggle="modal" data-bs-target="#deleteEventModal" 
+                                            data-event-id="{{ event.event.id }}" 
+                                            data-delete-url="{% url 'delete_event' event.event.id %}">
+                                            <i class="fa-solid fa-x"></i>
+                                        </button>
+                                    {% endif %}
+                                    <a href="{% url 'event_details' event.event.id %}" class="btn btn-outline-primary"><i class="fa-solid fa-circle-info"></i></a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body d-flex flex-column flex-grow-1">
+                            <h6 class="card-subtitle mb-2 text-body-secondary">Organized by <strong>{{ event.event.organizer }}</strong> until <strong>{{ event.event.date }}</strong>.</h6>
+                            <h6 class="card-subtitle mb-2 text-body-secondary">Category: {{ event.event.category }}</h6>
+                            <h6 class="card-subtitle mb-2 text-body-secondary">Location: {{ event.event.location }}</h6>
+                            <h6 class="card-subtitle mb-2 text-body-secondary">Target Donation: ${{ event.event.target_donation }}</h6>
+                            <br>
+                            <p class="card-text">{{ event.event.description }}</p>
+                            <div class="progress" role="progressbar" aria-label="Example with label" aria-valuenow="{{ event.event.donation_progress }}" aria-valuemin="0" aria-valuemax="100">
+                                <div class="progress-bar bg-primary" style="width: {{ event.event.donation_progress }}%;">%{{ event.event.donation_progress }}</div>
+                            </div>
+                        </div>
+                        <div class="card-footer text-center">
+                            {% if event.event.organizer != request.user %}
+                                <a href="{% url 'make_donation' event.event.id %}" class="card-link btn btn-outline-primary">Donate</a>
+                                {% if event.is_participated %}
+                                    <form action="{% url 'departicipate_event' event.event.id %}" method="post">
+                                        {% csrf_token %}
+                                        <button class="btn btn-outline-danger">Departicipate</button>
+                                    </form>
+                                {% else %}
+                                    <form action="{% url 'participate_event' event.event.id %}" method="post">
+                                        {% csrf_token %}
+                                        <button class="btn btn-outline-success">Participate</button>
+                                    </form>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Edit Modal -->
+                <div class="modal fade" id="editEventModal" tabindex="-1" aria-labelledby="editEventModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5 text-center" id="editEventModalLabel">Edit Event</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="editEventForm" name="editEventForm" method="post" action="{% url 'edit_event' event.event.id %}">
+                                    {% csrf_token %}
+                                    <div class="mb-3">
+                                        <label for="new_title" class="col-form-label">New Title:</label>
+                                        <input type="text" class="form-control" id="new_title" name="new_title" value="">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="new_description" class="col-form-label">Description:</label>
+                                        <textarea class="form-control" id="new_description" name="new_description"></textarea>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="new_date" class="col-form-label">Event Date:</label>
+                                        <input type="datetime-local" class="form-control" id="new_date" name="new_date">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label for="new_location" class="col-form-label">Location:</label>
+                                        <input type="text" class="form-control" id="new_location" name="new_location">
+                                    </div>
+                                    <!-- Diğer input alanları burada olacak -->
+                                    <input type="hidden" id="event_id" name="event_id" value="{{ event.event.id }}">
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-outline-success" form="editEventForm" id="saveChanges">Save changes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Delete modal -->
+                <div class="modal fade" id="deleteEventModal" tabindex="-1" aria-labelledby="deleteEventModalLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h1 class="modal-title fs-5 text-center" id="deleteEventModalLabel">Delete Event</h1>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <form id="deleteEventForm" name="deleteEventForm" method="post" action="{% url 'delete_event' event.event.id %}">
+                                    {% csrf_token %}
+                                    <p class="text-center fs-4">Are you sure you want to delete this event?</p>
+                                    <input type="hidden" name="event_id" id="event_id" value="{{ event.event.id }}">
+                                </form>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-outline-success" data-bs-dismiss="modal">No</button>
+                                <button type="submit" class="btn btn-outline-danger" form="deleteEventForm" id="deleteYesButton">Yes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            {% endfor %}
+        </div>
+        
+        <hr>
+        <!-- Leaderboards -->
+        <div class="row">
+            <!-- Most Contributors -->
+            <div class="col-md-6 most-contributors d-flex flex-column">
+                <h2 class="text-center mt-3">Most Contributors</h2>
+                <hr>
+                <div class="card h-100 mb-3 d-flex flex-column contributors">
+                    <ul class="list-group list-group-flush">
+                        {% for contributor in contributors %}
+                            <li class="list-group-item d-flex align-items-center">
+                                <img src="{% static 'app/img/default_profile.jpg' %}" alt="Profile Image" class="card-img">
+                                <div>
+                                    <h5 class="card-text">{{ contributor.username }}</h5>
+                                    <p class="card-text">Total Donation: ${{ contributor.total_donation|default:0 }}</p>
+                                </div>
+                                {% if contributor != request.user %}
+                                    <form action="{% url 'congratulate' request.user.id contributor.id %}" method="post" id="congratulate-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-primary congratulate-btn" data-congratulator-id="{{ request.user.id }}" data-user-id="{{ contributor.id }}">Congratulate</button>
+                                    </form>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            <!-- Most Participators -->
+            <div class="col-md-6 most-participators d-flex flex-column">
+                <h2 class="text-center mt-3">Most Participators</h2>
+                <hr>
+                <div class="card h-100 mb-3 d-flex flex-column participators">
+                    <ul class="list-group list-group-flush">
+                        {% for participator in participators %}
+                            <li class="list-group-item d-flex align-items-center">
+                                <img src="{{ participator.profile_image.url }}" alt="Profile Image" class="card-img rounded-circle">
+                                <div>
+                                    <h5 class="card-text">{{ participator.username }}</h5>
+                                    <p class="card-text">Total Participations: {{ participator.total_participations }}</p>
+                                </div>
+                                {% if participator != request.user %}
+                                    <form action="{% url 'congratulate' request.user.id participator.id %}" method="post" id="congratulate-form">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-outline-primary congratulate-btn" data-congratulator-id="{{ request.user.id }}" data-user-id="{{ participator.id }}">Congratulate</button>
+                                    </form>
+                                {% endif %}
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script src="{% static 'app/js/edit_event.js' %}"></script>
+    <script src="{% static 'app/js/delete_event.js' %}"></script>
+    <script src="{% static 'app/js/congratulate.js' %}"></script>
+{% endblock %}

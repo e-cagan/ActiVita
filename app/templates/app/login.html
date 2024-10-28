@@ -1,0 +1,80 @@
+{% extends "app/layout.html" %}
+
+{% load static %}
+
+{% block title %}
+    Login
+{% endblock %}
+
+{% block styles %}
+    <style>
+        /* Sadece login sayfasını ortalayacak stil */
+        .login-page {
+            min-height: 100vh; /* Sayfanın tamamını kapsar */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .login-container {
+            width: 400px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .form-group {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .btn-primary {
+            width: 50%; /* Butonun genişliği */
+            margin: 0 auto; /* Butonu ortalar */
+            display: block;
+        }
+
+        .login-form p {
+            text-align: center;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="login-page">
+        <div class="login-container">
+            <h2 class="mb-4 text-center">Login</h2>
+
+            {% if message %}
+                <div class="alert alert-warning">{{ message }}</div>
+            {% endif %}
+
+            <form action="{% url 'login' %}" method="post" class="login-form">
+                {% csrf_token %}
+                
+                <!-- Username Field -->
+                <div class="form-group mb-3">
+                    <label for="username">Username</label>
+                    <input autofocus class="form-control" type="text" id="username" name="username" placeholder="Enter your username" required>
+                </div>
+                
+                <!-- Password Field -->
+                <div class="form-group mb-3">
+                    <label for="password">Password</label>
+                    <input class="form-control" type="password" id="password" name="password" placeholder="Enter your password" required>
+                </div>
+                
+                <!-- Submit Button -->
+                <input class="btn btn-primary mt-3" type="submit" value="Login">
+            </form>
+
+            <p class="text-center mt-3">Don't have an account? <a href="{% url 'register' %}">Register here.</a></p>
+        </div>
+    </div>
+{% endblock %}

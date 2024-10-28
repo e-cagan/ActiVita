@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+{% load static %}
+    <head>
+        <title>ActiVita: {% block title %}{% endblock %}</title>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+        <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+        <link href="{% static 'app/css/styles.css' %}" rel="stylesheet" type="text/css">
+        {% block script %}{% endblock %}
+        {% block styles %}{% endblock %}
+        <style>
+            @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300;400;500;700;900&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Roboto', sans-serif;
+}
+
+body {
+    background-color: #f0f8ff;
+}
+
+.navbar-brand, .nav-link, .fa-bell {
+    color: white;
+    margin: 0 20px 0 10px;
+    text-decoration: none;
+}
+
+.navbar-brand {
+    margin-right: 20px;
+}
+
+.nav-link:hover {
+    text-decoration: solid 2px white;
+    transition: text-decoration 0.2s;
+}
+
+.left, .right {
+    display: flex;
+    align-items: center;
+}
+
+.navbar .container-fluid {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.navbar .right form, .user {
+    display: flex;
+    align-items: center;
+    margin-right: 15px;
+}
+
+.rounded-circle {
+    margin-left: 10px;
+    object-fit: cover;
+}
+
+.search-bar {
+    width: 300px;
+}
+
+.search-btn {
+    margin: 0;
+}
+
+.notification-wrapper {
+    position: relative; /* Zil simgesini ve badge'i referans almak için */
+    display: inline-block;
+}
+
+#notification-count {
+    position: absolute;
+    top: 0px;  /* Yukarı veya aşağı pozisyonunu buradan ayarlayabilirsin */
+    left: 25px; /* Zil simgesinin soluna veya sağına konumlandırma için */
+    padding: 2px 6px;
+    border-radius: 50%;
+    background-color: red;
+    color: white;
+    font-size: 8px;
+    line-height: 1;
+}
+
+
+
+        </style>
+    </head>
+    <body>
+        <nav class="navbar bg-primary">
+            <div class="container-fluid">
+                <div class="left">
+                    <a class="navbar-brand" href="{% url 'index' %}">ActiVita</a>
+                    {% if user.is_authenticated %}
+                        <a class="nav-link" href="{% url 'create_event' %}">Create Event</a>
+                        <a class="nav-link" href="{% url 'change_password' %}">Change Password</a>
+                        <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+                    {% else %}
+                        <a class="nav-link" href="{% url 'login' %}">Login</a>
+                        <a class="nav-link" href="{% url 'register' %}">Register</a>
+                    {% endif %}
+                </div>
+                <div class="right">
+                    <form class="d-flex" role="search" action="{% url 'search' %}" method="post">
+                        {% csrf_token %}
+                        <input class="form-control me-2 search-bar" type="search" placeholder="Search" name="query" aria-label="Search">
+                        <button class="btn btn-outline-light rounded-circle search-btn" type="submit"><i class="fa-solid fa-magnifying-glass"></i></button>
+                    </form>
+                    {% if user.is_authenticated %}
+                        <a href="{% url 'profile_page' %}" class="nav-item user">
+                            {% if user.profile_image %}
+                                <img src="{{ user.profile_image.url }}" class="rounded-circle" alt="Profile Image" width="50" height="50">
+                            {% else %}
+                                <img src="{% static 'app/img/default_profile.jpg' %}" class="rounded-circle" alt="Default Picture" width="50" height="50">
+                            {% endif %}
+                        </a>
+                        <div class="notification-wrapper">
+                            <i class="fa-solid fa-bell"></i> <!-- Zil simgesi -->
+                            <span class="badge bg-danger" id="notification-count">3</span> <!-- Bildirim sayısı -->
+                            <div class="list-group" style="display: none;">
+                                <a href="#" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                      <h5 class="mb-1">List group item heading</h5>
+                                      <small class="text-body-secondary">3 days ago</small>
+                                    </div>
+                                    <p class="mb-1">Some placeholder content in a paragraph.</p>
+                                    <small class="text-body-secondary">And some muted small print.</small>
+                                </a>
+                            </div>
+                        </div>                                                
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+
+        {% for message in messages %}
+            <div class="alert {{ message.tags }} alert-dismissible fade show" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        {% endfor %}
+        
+        <div class="body" id="main-content">
+            {% block body %}
+            {% endblock %}
+        </div>
+
+        <div id="search-results" style="display: none;"></div>
+
+        <button id="back-button" class="btn btn-outline-secondary mb-3" style="display: none;">Back</button>
+        
+        <!-- JavaScript for Bootstrap -->
+        <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+
+        <!-- Leaflet JS -->
+        <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
+        <!-- Custom JS files -->
+        <script src="{% static 'app/js/search.js' %}"></script>
+        
+    </body>
+</html>

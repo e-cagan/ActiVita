@@ -1,0 +1,163 @@
+{% extends "app/layout.html" %}
+
+{% load static %}
+
+{% block title %}
+    Create Event
+{% endblock %}
+
+{% block styles %}
+    <style>
+        .create-event-page {
+            min-height: 100vh; /* Sayfanın tamamını kapsar */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .form-control, .form-select {
+            padding: 0.75rem;
+            font-size: 1rem;
+        }
+
+        .form-select {
+            border-radius: 10px;
+            border: 2px solid #f0f8ff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group:hover {
+            opacity: 0.8;
+            transition: opacity 0.2s;
+        }
+
+        .form-group:active {
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        }
+
+        .btn-primary {
+            width: 25%; /* Butonun genişliği */
+            margin: 0 auto; /* Butonu ortalar */
+            display: block;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="create-event-page">
+        <div class="container">
+            <h2 class="mb-4 text-center">Create Event</h2>
+    
+            {% if message %}
+                <div class="alert alert-info">{{ message }}</div>
+            {% endif %}
+    
+            <form action="{% url 'create_event' %}" method="post">
+                {% csrf_token %}
+                <!-- Event Title -->
+                <div class="form-group">
+                    <label for="title">Title</label>
+                    <input autofocus class="form-control" type="text" id="title" name="title" placeholder="Enter event title">
+                </div>
+    
+                <!-- Event Description -->
+                <div class="form-group">
+                    <label for="description">Description</label>
+                    <textarea name="description" id="description" rows="3" class="form-control" placeholder="Enter event description"></textarea>
+                </div>
+    
+                <!-- Event Category -->
+                <div class="form-group">
+                    <label for="categories">Category</label>
+                    <select name="categories" id="categories" class="form-select">
+                        <option value="" disabled selected>Select a category</option>
+                        {% for category in categories %}
+                            <option value="{{ category.id }}">{{ category.name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+    
+                <!-- Event Date -->
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input class="form-control" type="datetime-local" id="date" name="date" placeholder="Select event date">
+                </div>
+    
+                <!-- Event Location -->
+                <div class="form-group">
+                    <label for="location">Location</label>
+                    <input class="form-control" type="text" id="location" name="location" placeholder="Enter event location">
+                    <input type="hidden" id="latitude" name="latitude">
+                    <input type="hidden" id="longitude" name="longitude">
+                </div>
+    
+                <!-- Map -->
+                <div id="map"></div>
+    
+                <!-- Target Donation -->
+                <div class="form-group">
+                    <label for="target_donation">Target Donation ($)</label>
+                    <input class="form-control" type="number" id="target_donation" name="target_donation" placeholder="Enter target donation amount" step="0.01" min="0">
+                </div>
+    
+                <!-- Submit Button -->
+                <div class="form-group">
+                    <input class="btn btn-primary" type="submit" value="Create Event">
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            var map = L.map('map').setView([39.9334, 32.8597], 7); // Başlangıç noktası
+
+            // Haritaya OpenStreetMap katmanını ekle
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            var marker;
+
+            // Haritaya tıklanıldığında
+            map.on('click', function(e) {
+                var lat = e.latlng.lat;
+                var lng = e.latlng.lng;
+
+                // Önceki marker'ı kaldır
+                if (marker) {
+                    map.removeLayer(marker);
+                }
+
+                // Yeni marker ekle
+                marker = L.marker([lat, lng]).addTo(map)
+                    .bindPopup("Coordinates: " + lat.toFixed(5) + ", " + lng.toFixed(5))
+                    .openPopup();
+
+                // Koordinatları inputlara aktar
+                document.getElementById('latitude').value = lat;
+                document.getElementById('longitude').value = lng;
+            });
+        });
+    </script>
+{% endblock %}

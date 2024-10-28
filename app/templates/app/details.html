@@ -1,0 +1,172 @@
+{% extends "app/layout.html" %}
+
+{% load static %}
+
+{% block title %}
+    Event Details
+{% endblock %}
+
+{% block styles %}
+    <style>
+        .card {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            max-height: 400px;
+            overflow-y: auto; 
+        }
+
+        .card-body {
+            flex-grow: 1;
+        }
+
+        .card-body p {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .progress {
+            margin-top: 10px;
+        }
+
+        .progress-bar {
+            width: 0;
+            text-align: center;
+            transition: width 0.4s ease;
+        }
+
+        .card-footer {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .list-group-item .congratulate {
+            margin-left: auto;
+        }
+
+        #map {
+            height: 400px;
+            width: 100%;
+        }
+
+        .list-group-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .participators, .map-container {
+            padding: 15px;
+        }
+
+        .participators ul {
+            list-style-type: none;
+            padding: 0;
+        }
+
+        .no-participators {
+            text-align: center;
+            font-style: italic;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="container mt-4">
+        <div class="row">
+            <!-- Event Card -->
+            <div class="col-lg-12 mb-4">
+                <div class="card text-center">
+                    <div class="card-header">
+                        <strong>{{ event.title }}</strong>
+                    </div>
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-body-secondary">Organized by <strong>{{ event.organizer }}</strong> until <strong>{{ event.date }}</strong>.</h6>
+                        <h6 class="card-subtitle mb-2 text-body-secondary">Category: {{ event.category }}</h6>
+                        <h6 class="card-subtitle mb-2 text-body-secondary">Location: {{ event.location }}</h6>
+                        <h6 class="card-subtitle mb-2 text-body-secondary">Target Donation: ${{ event.target_donation }}</h6>
+                        <p class="card-text mt-3">{{ event.description }}</p>
+                        <div class="progress">
+                            <div class="progress-bar bg-primary" style="width: {{ event.donation_progress }}%;">%{{ event.donation_progress }}</div>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        {% if event.organizer != request.user %}
+                            <a href="{% url 'make_donation' event.id %}" class="btn btn-outline-primary">Donate</a>
+                            {% if is_participated %}
+                                <form action="{% url 'departicipate_event' event.id %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button class="btn btn-outline-danger">Departicipate</button>
+                                </form>
+                            {% else %}
+                                <form action="{% url 'participate_event' event.id %}" method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <button class="btn btn-outline-success">Participate</button>
+                                </form>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Participators List -->
+            <div class="col-lg-6 participators">
+                <h3 class="text-center">Participators</h3>
+                <hr>
+                <ul>
+                    {% if participators %}
+                        {% for participator in participators %}
+                            <div class="card">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <img src="{{ participator.user.profile_image.url }}" alt="Profile Image" class="card-img rounded-circle" style="width: 50px; height: 50px; object-fit: cover; margin-right: 10px;">
+                                            <h5 class="card-text">{{ participator.user }}</h5>
+                                        </div>
+                                        {% if participator.user != request.user %}
+                                            <button class="btn btn-outline-primary congratulate">Congratulate</button>
+                                        {% endif %}
+                                    </li>
+                                </ul>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p class="no-participators">No participators yet.</p>
+                    {% endif %}
+                </ul>
+            </div>
+
+            <!-- Event Location Map -->
+            <div class="col-lg-6 map-container">
+                <h3 class="text-center">Event Location</h3>
+                <hr>
+                <div id="map"></div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var latitude = {{ event.latitude }};
+            var longitude = {{ event.longitude }};
+
+            // Initialize the map
+            const map = L.map('map').setView([latitude, longitude], 5);
+
+            // Add tile layer (map view)
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            }).addTo(map);
+
+            // Add marker to event location
+            L.marker([latitude, longitude]).addTo(map)
+                .bindPopup("<b>{{ event.title }}</b><br>{{ event.location }}")
+                .openPopup();
+        });
+    </script>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends "app/layout.html" %}
+
+{% load static %}
+
+{% block title %}
+    Profile
+{% endblock %}
+
+{% block styles %}
+    <style>
+        .profile-container {
+            margin-top: 30px;
+            padding: 30px;
+            background-color: #f9f9f9;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .profile-image {
+            border-radius: 50%;
+            width: 150px;
+            height: 150px;
+            object-fit: cover;
+        }
+
+        .profile-details {
+            margin-top: 20px;
+        }
+
+        .profile-buttons {
+            margin-top: 20px;
+        }
+
+        .profile-buttons .btn {
+            margin-right: 10px;
+        }
+
+        .card {
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        p {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <div class="container profile-container">
+        <h2 class="text-center mb-4">Profile Page</h2>
+        <div class="row align-items-center">
+            <div class="col-md-6 text-center">
+                {% if user.profile_image %}
+                    <img src="{{ user.profile_image.url }}" alt="Profile Image" class="profile-image">
+                {% else %}
+                    <img src="{% static 'app/img/default_profile.jpg' %}" alt="Default Profile Image" class="profile-image">
+                {% endif %}
+                <h3>{{ user.username }}</h3>
+            </div>
+            <div class="col-md-6 profile-details">
+                <p><strong>Total Participations:</strong> {{ user.total_participations }}</p>
+                <p><strong>Total Donations:</strong> ${{ user.total_donations }}</p>
+
+                <div class="profile-buttons">
+                    <form action="{% url 'edit_profile' %}" method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <input type="file" name="new_profile_image" id="new_profile_image">
+                        <button type="submit" class="btn btn-outline-info">Edit Profile Image</button>
+                    </form>
+                    <form action="{% url 'delete_profile' %}" method="post">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger">Delete Profile Image</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script src="{% static 'app/js/edit_profile.js' %}"></script>
+    <script src="{% static 'app/js/delete_profile.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends "app/layout.html" %}
+
+{% load static %}
+
+{% block title %}
+    Make Donation
+{% endblock %}
+
+{% block styles %}
+    <style>
+        .make-donation-page {
+            min-height: 100vh; /* Sayfanın tamamını kapsar */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .make-donation-container {
+            width: 400px;
+            padding: 20px;
+            background-color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .form-group {
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .btn-primary {
+            width: 50%; /* Butonun genişliğini formun tamamına yay */
+            margin: 0 auto;
+            display: block;
+        }
+
+        .make-donation-form p {
+            text-align: center;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+
+    <div class="make-donation-page">
+        <div class="make-donation-container">
+            <h2 class="mb-4 text-center">Make Donation</h2>
+
+            {% if message %}
+                <div class="alert alert-warning">{{ message }}</div>
+            {% endif %}
+
+            <form action="{% url 'make_donation' event.id %}" method="post" class="make-donation-form">
+                {% csrf_token %}
+                <div class="form-group mb-3">
+                    <label for="amount">Amount</label>
+                    <input class="form-control" type="number" name="amount" id="amount" placeholder="Donation" step="0.01" min="0.00">
+                </div>
+                <input class="btn btn-primary mt-4" type="submit" value="Donate">
+            </form>
+        </div>
+    </div>
+
+{% endblock %}
