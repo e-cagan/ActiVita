@@ -38,6 +38,7 @@ class Event(models.Model):
     def donation_progress(self):
         """ Calculates the donation progress by percentage. """
         if self.target_donation and self.total_donations:
+            #sşdfkls
             return round((self.total_donations / self.target_donation) * 100, 2)
         return 0
     
